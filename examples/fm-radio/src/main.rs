@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use futuresdr::anyhow::Result;
@@ -9,11 +10,12 @@ use futuresdr::blocks::Fir;
 use futuresdr::blocks::MessageSink;
 use futuresdr::blocks::MessageSource;
 use futuresdr::blocks::SoapySource;
-use futuresdr::blocks::{FileSink, FileSource};
+use futuresdr::blocks::{FileSink, FileSource, Source};
 use futuresdr::runtime::Flowgraph;
 use futuresdr::runtime::Pmt;
 use futuresdr::runtime::Runtime;
 use num_complex::Complex;
+use rand::Rng;
 
 const TAPS1: [f32; 59] = [
     -3.200768627064545e-19,
@@ -198,7 +200,14 @@ const TAPS2: [f32; 115] = [
 fn main() -> Result<()> {
     let mut fg = Flowgraph::new();
 
-    let src = fg.add_block(FileSource::new(2, "fm.cs8".to_string()));
+    let src = fg.add_block(Source::<Complex<i8>>::new(|| {
+        let mut rng = rand::thread_rng();
+        Complex {
+            re: rng.gen(),
+            im: rng.gen(),
+        }
+    }));
+    //let src = fg.add_block(FileSource::new(2, "fm.cs8".to_string()));
     /*let src = fg.add_block(SoapySource::new(
         100e6,
         8e6,
@@ -275,9 +284,19 @@ fn main() -> Result<()> {
         };
         o
     }));
-    let sink = fg.add_block(FileSink::new(2, "tmp.cs8"));
+    let sink = fg.add_block(FileSink::new(2, "/tmp/tmp.cs8"));
     /*let typecvt = fg.add_block(Apply::<f32, i8>::new(|i| (i * 127.) as i8));
     let sink = fg.add_block(FileSink::new(1, "tmp.s8"));*/
+
+    let mut blocks: HashMap<&'static str, usize> = HashMap::new();
+    blocks.insert("src", src);
+    blocks.insert("typecvt0", typecvt0);
+    blocks.insert("freqshift", freqshift);
+    blocks.insert("gain", gain);
+    blocks.insert("filter", filter);
+    blocks.insert("decimate", decimate);
+    blocks.insert("filter2", filter2);
+    blocks.insert("decimate2", decimate2);
 
     fg.connect_stream(src, "out", typecvt0, "in")?;
     fg.connect_stream(typecvt0, "out", freqshift, "in")?;
@@ -289,7 +308,16 @@ fn main() -> Result<()> {
     fg.connect_stream(decimate2, "out", fm_demod, "in")?;
     fg.connect_stream(fm_demod, "out", speaker, "in")?;
 
-    fg.connect_stream(gain, "out", typecvt, "in")?;
+    let block_to_record: String = std::env::args()
+        .nth(1)
+        .unwrap_or("typecvt0".to_string())
+        .to_owned();
+    fg.connect_stream(
+        *blocks.get(&*block_to_record).unwrap(),
+        "out",
+        typecvt,
+        "in",
+    )?;
     fg.connect_stream(typecvt, "out", sink, "in")?;
 
     Runtime::new().run(fg)?;
