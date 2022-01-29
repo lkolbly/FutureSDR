@@ -3,7 +3,6 @@ use std::time::Duration;
 use futuresdr::anyhow::Result;
 use futuresdr::blocks::audio::AudioSink;
 use futuresdr::blocks::Apply;
-use futuresdr::blocks::ComplexFir;
 use futuresdr::blocks::Filter;
 use futuresdr::blocks::Fir;
 use futuresdr::blocks::MessageSink;
