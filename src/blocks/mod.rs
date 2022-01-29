@@ -16,7 +16,7 @@ pub use filter::Filter;
 
 #[cfg_attr(RUSTC_IS_STABLE, path = "fir_stable.rs")]
 mod fir;
-pub use fir::Fir;
+pub use fir::{ComplexFir, Fir};
 
 mod fft;
 pub use fft::{Fft, FftBuilder};
