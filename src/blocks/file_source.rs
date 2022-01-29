@@ -49,6 +49,7 @@ impl AsyncKernel for FileSource {
         let out = sio.output(0).slice::<u8>();
 
         let n_read = std::cmp::min(out.len(), self.file_size - self.n_produced);
+        let n_read = if n_read % 2 != 0 { n_read - 1 } else { n_read };
 
         match self
             .file
