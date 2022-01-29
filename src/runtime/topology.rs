@@ -179,23 +179,29 @@ impl Topology {
 
         let sp = src
             .stream_output_name_to_id(src_port)
-            .context("invalid src port name")?;
+            .context("invalid src stream port name")?;
         let sp = src.stream_output(sp);
 
         let dp = dst
             .stream_input_name_to_id(dst_port)
-            .context("invalid dst port name")?;
+            .context("invalid dst stream port name")?;
         let dp = dst.stream_input(dp);
 
         let src_port_id = src
             .stream_output_name_to_id(src_port)
-            .context("invalid src port name")?;
+            .context("invalid src stream port name")?;
         let dst_port_id = dst
             .stream_input_name_to_id(dst_port)
-            .context("invalid dst port name")?;
+            .context("invalid dst stream port name")?;
 
         if sp.item_size() != dp.item_size() {
-            bail!("item sizes do not match");
+            bail!(
+                "item sizes do not match: Source {} was {}, dest {} was {}",
+                src.instance_name().unwrap_or(""),
+                sp.item_size(),
+                dst.instance_name().unwrap_or(""),
+                dp.item_size()
+            );
         }
 
         let buffer_entry = BufferBuilderEntry {
@@ -233,10 +239,10 @@ impl Topology {
 
         let src_port_id = src
             .message_output_name_to_id(src_port)
-            .context("invalid src port name")?;
+            .context("invalid src message port name")?;
         let dst_port_id = dst
             .message_input_name_to_id(dst_port)
-            .context("invalid dst port name")?;
+            .context("invalid dst message port name")?;
 
         self.message_edges
             .push((src_block, src_port_id, dst_block, dst_port_id));
