@@ -23,7 +23,7 @@ fn main() -> Result<()> {
     let mut current_value = Complex::from_polar(1.0, 0.0);
     let src = fg.add_block(Source::<f32>::new(move || {
         freq += 0.00003;
-        if freq > 3.14159265 {
+        if freq > 3.14159265 / 2.0 {
             freq = 0.0;
         }
         current_value = current_value * Complex::from_polar(1.0, freq);
