@@ -14,7 +14,7 @@ use crate::runtime::StreamIoBuilder;
 use crate::runtime::WorkIo;
 
 pub struct FileSink {
-    // item_size: usize,
+    item_size: usize,
     file_name: String,
     file: Option<File>,
     n_written: usize,
@@ -22,7 +22,7 @@ pub struct FileSink {
 
 impl FileSink {
     pub fn new(item_size: usize, file_name: &str) -> Block {
-        debug_assert_eq!(item_size, 1);
+        //debug_assert_eq!(item_size, 1);
         Block::new_async(
             BlockMetaBuilder::new("FileSink").build(),
             StreamIoBuilder::new().add_input("in", item_size).build(),
@@ -31,6 +31,7 @@ impl FileSink {
                 file_name: file_name.into(),
                 file: None,
                 n_written: 0,
+                item_size,
             },
         )
     }
@@ -47,7 +48,19 @@ impl AsyncKernel for FileSink {
     ) -> Result<()> {
         let i = sio.input(0).slice::<u8>();
 
-        match self.file.as_mut().unwrap().write_all(i).await {
+        let n_to_write = if i.len() % self.item_size != 0 {
+            i.len() - i.len() % self.item_size
+        } else {
+            i.len()
+        };
+
+        match self
+            .file
+            .as_mut()
+            .unwrap()
+            .write_all(&i[..n_to_write])
+            .await
+        {
             Ok(()) => {}
             Err(e) => panic!("file sink: name {:?} file error {:?}", self.file_name, e),
         }
@@ -56,8 +69,8 @@ impl AsyncKernel for FileSink {
             io.finished = true;
         }
 
-        self.n_written += i.len();
-        sio.input(0).consume(i.len());
+        self.n_written += n_to_write;
+        sio.input(0).consume(n_to_write);
         Ok(())
     }
 
