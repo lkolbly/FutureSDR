@@ -24,6 +24,9 @@ pub use filter::Filter;
 mod fir;
 pub use fir::FirBuilder;
 
+mod iir;
+pub use iir::IirBuilder;
+
 mod fft;
 pub use fft::{Fft, FftBuilder};
 
