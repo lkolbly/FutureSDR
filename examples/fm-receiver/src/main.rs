@@ -334,6 +334,10 @@ struct Args {
     /// Block to probe
     #[clap(long)]
     probe: Option<String>,
+
+    /// Volume between 0 and 1
+    #[clap(long)]
+    volume: Option<f32>,
 }
 
 fn main() -> Result<()> {
@@ -433,6 +437,10 @@ fn main() -> Result<()> {
         0.0,
     ));
 
+    // Apply volume control
+    let volume = args.volume.unwrap_or(1.0);
+    let volume = fg.add_block(Apply::<f32, f32>::new(move |i| i * volume));
+
     // Send to audio
     let speaker = fg.add_block(AudioSink::new(40_000, 1));
 
@@ -448,6 +456,7 @@ fn main() -> Result<()> {
     blocks.insert("audio_filter", (audio_filter, false));
     blocks.insert("decimate_audio", (decimate_audio, false));
     blocks.insert("deemphasis", (deemphasis, false));
+    blocks.insert("volume", (volume, false));
 
     let block_to_record: Option<(usize, bool)> = args.probe.map(|block_to_record| {
         *blocks
@@ -488,7 +497,8 @@ fn main() -> Result<()> {
     fg.connect_stream(decimate2, "out", fm_demod, "in")?;
     fg.connect_stream(fm_demod, "out", audio_filter, "in")?;
     fg.connect_stream(audio_filter, "out", decimate_audio, "in")?;
-    fg.connect_stream(decimate_audio, "out", deemphasis, "in")?;
+    fg.connect_stream(decimate_audio, "out", volume, "in")?;
+    fg.connect_stream(volume, "out", deemphasis, "in")?;
     fg.connect_stream(deemphasis, "out", speaker, "in")?;
 
     Runtime::new().run(fg)?;
